@@ -18,3 +18,7 @@ starlette==0.27.0
 typing_extensions==4.6.3
 uvicorn==0.22.0
 psycopg2
+pytest
+pytest-asyncio
+httpx
+asgi-lifespan
