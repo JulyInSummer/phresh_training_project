@@ -1,5 +1,8 @@
 import bcrypt
 import jwt
+from typing import Optional
+from fastapi import HTTPException, status
+from pydantic import ValidationError
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 
@@ -20,9 +23,9 @@ class AuthException(BaseException):
 
 
 class AuthService:
-    def create_salt_and_hashed_password(self, *, plainttext_password: str) -> UserPasswordUpdate:
+    def create_salt_and_hashed_password(self, *, plaintext_password: str) -> UserPasswordUpdate:
         salt = self.generate_salt()
-        hashed_password = self.hash_password(password=plainttext_password, salt=salt)
+        hashed_password = self.hash_password(password=plaintext_password, salt=salt)
 
         return UserPasswordUpdate(salt=salt, password=hashed_password)
     
@@ -64,3 +67,17 @@ class AuthService:
 
         access_token = jwt.encode(token_payload.dict(), secret_key, algorithm=JWT_ALGOITHM)
         return access_token
+    
+
+    def get_username_from_token(self, *, token: str, secret_key: str) -> Optional[str]:
+        try:
+            decoded_token = jwt.decode(token, str(secret_key), audience=JWT_AUDIENCE, algorithms=[JWT_ALGOITHM])
+            payload = JWTPayload(**decoded_token)
+        except (jwt.PyJWTError, ValidationError):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate token credentials",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        
+        return payload.username
